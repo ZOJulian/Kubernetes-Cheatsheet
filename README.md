@@ -199,9 +199,7 @@ spec:
         - name: example-container
           image: nginx:latest
 ```
-**Beispiel Aufgaben:**
-
-## Inhaltsverzeichnis
+## Beispiel Aufgaben:
 1. **Einleitung**
 2. **Kubernetes Objekte**
    - Pods
