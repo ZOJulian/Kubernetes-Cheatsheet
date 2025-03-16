@@ -199,4 +199,270 @@ spec:
         - name: example-container
           image: nginx:latest
 ```
+**Beispiel Aufgaben:**
+
+## Inhaltsverzeichnis
+1. **Einleitung**
+2. **Kubernetes Objekte**
+   - Pods
+   - Deployments
+   - DaemonSets
+   - CronJobs
+   - Jobs
+   - ConfigMaps und Secrets
+   - ServiceAccounts und RBAC
+3. **Deployment Beispiel: podinfo**
+4. **Ingress und Services**
+5. **Ressourcenverwaltung und Sicherheit**
+
+
+## 1. Einleitung
+Beispiel Aufgaben.
+## 2. Kubernetes Objekte
+
+### 2.1 Pods
+Ein **Pod** ist die kleinste ausführbare Einheit in Kubernetes. Ein Pod kann einen oder mehrere Container enthalten.
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ctf-client
+  namespace: ctf-test
+  labels:
+    run: ctf-client
+spec:
+  containers:
+  - name: ctf-client
+    image: ghcr.io/k8s-2025-pschoeppner/ctf-client:0.2.0
+    args:
+    - --flag
+    - ConfigMap
+    - --server
+    - http://ctf-server.ctf-server.svc.cluster.local:8080
+```
+
+### 2.2 Deployments
+Ein **Deployment** ermöglicht die deklarative Verwaltung von Pod-Replikationen und Upgrades.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ctf-client
+  namespace: ctf-test
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ctf-client
+  template:
+    metadata:
+      labels:
+        app: ctf-client
+    spec:
+      containers:
+      - name: ctf-client
+        image: ghcr.io/k8s-2025-pschoeppner/ctf-client:0.2.0
+        args:
+        - --flag
+        - FromEveryNode
+```
+
+### 2.3 DaemonSets
+Ein **DaemonSet** stellt sicher, dass eine Kopie eines Pods auf jedem Knoten im Cluster ausgeführt wird.
+
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ctf-client
+  namespace: ctf-test
+spec:
+  selector:
+    matchLabels:
+      app: ctf-client
+  template:
+    metadata:
+      labels:
+        app: ctf-client
+    spec:
+      containers:
+      - name: ctf-client
+        image: ghcr.io/k8s-2025-pschoeppner/ctf-client:0.2.0
+        args:
+        - --flag
+        - FromEveryNode
+```
+
+### 2.4 CronJobs
+Ein **CronJob** führt zeitgesteuerte Aufgaben aus, ähnlich wie der Unix-Cron-Dienst.
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ctf-client
+  namespace: ctf-test
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: ctf-client
+            image: ghcr.io/k8s-2025-pschoeppner/ctf-client:0.2.0
+            args:
+            - --flag
+            - FromOnePodTwice
+```
+
+### 2.5 Jobs
+Ein **Job** sorgt dafür, dass eine bestimmte Anzahl von Pods erfolgreich abgeschlossen wird.
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ctf-client
+  namespace: ctf-test
+spec:
+  completions: 2
+  parallelism: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: ctf-client
+        image: ghcr.io/k8s-2025-pschoeppner/ctf-client:0.2.0
+        args:
+        - --flag
+        - FromTwoPodsOnce
+```
+
+### 2.6 ConfigMaps und Secrets
+**ConfigMaps** und **Secrets** speichern Konfigurationsdaten und sensible Informationen.
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ctf-configmap
+  namespace: ctf-test
+data:
+  secret: test
+```
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ctf-secret
+  namespace: ctf-test
+data:
+  secret: XXX # Base64-codiert
+```
+
+### 2.7 ServiceAccounts und RBAC
+ServiceAccounts ermöglichen Pods den Zugriff auf Kubernetes-APIs mit den richtigen Berechtigungen.
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ctf-client
+  namespace: ctf-test
+```
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ctf-client
+  namespace: ctf-test
+rules:
+  - apiGroups: [""]
+    resources:
+    - configmaps
+    verbs:
+    - get
+```
+
+---
+
+## 3. Deployment Beispiel: podinfo
+Das **podinfo** Deployment stellt eine Beispiel-Anwendung bereit.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podinfo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: podinfo
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: podinfo
+    spec:
+      containers:
+        - name: podinfo
+          image: "ghcr.io/stefanprodan/podinfo:6.8.0"
+```
+
+---
+
+## 4. Ingress und Services
+**Ingress** steuert den HTTP-Zugriff auf Services.
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: podinfo
+spec:
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: podinfo
+            port:
+              number: 9898
+```
+
+**Service** stellt den Netzwerkzugriff auf eine Anwendung sicher.
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: podinfo
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9898
+      targetPort: http
+```
+
+---
+
+## 5. Ressourcenverwaltung und Sicherheit
+- **Limits & Requests** helfen, Ressourcen fair zu verteilen.
+- **SecurityContext** ermöglicht das Erzwingen von Sicherheitsrichtlinien in Pods.
+
+```yaml
+securityContext:
+  runAsUser: 1000
+```
+
+
 
